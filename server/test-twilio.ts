@@ -14,7 +14,7 @@ interface Message {
   twilioSid?: string;
 }
 
-const API_URL = 'https://dock-os-production.up.railway.app';
+const API_URL = 'http://localhost:3000';
 
 async function testTwilioIntegration() {
   try {
