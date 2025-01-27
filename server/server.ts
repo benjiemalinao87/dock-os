@@ -9,14 +9,26 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Message interface
+interface Message {
+  id: string;
+  direction: 'inbound' | 'outbound';
+  content: string;
+  status: string;
+  timestamp: Date;
+  to?: string;
+  from?: string;
+  twilioSid?: string;
+}
+
 // Initialize Twilio client
 const twilioClient = twilio(
   process.env.TWILIO_ACCOUNT_SID,
   process.env.TWILIO_AUTH_TOKEN
 );
 
-// In-memory message store (replace with a database in production)
-const messages: any[] = [];
+// In-memory message store
+const messages: Message[] = [];
 
 // Middleware
 app.use(cors());
@@ -37,7 +49,7 @@ app.post('/api/messages', async (req, res) => {
     const formattedPhone = to.startsWith('+') ? to : '+' + to.replace(/\D/g, '');
     
     // Create message object
-    const message = {
+    const message: Message = {
       id: uuidv4(),
       direction: 'outbound',
       content,
@@ -61,9 +73,12 @@ app.post('/api/messages', async (req, res) => {
     messages.push(message);
     
     res.json(message);
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error sending message:', error);
-    res.status(500).json({ error: 'Failed to send message' });
+    res.status(500).json({ 
+      error: 'Failed to send message',
+      details: error.message 
+    });
   }
 });
 
@@ -73,7 +88,7 @@ app.post('/api/webhooks/twilio/incoming', (req, res) => {
     const { From, Body, MessageSid } = req.body;
     
     // Create message object
-    const message = {
+    const message: Message = {
       id: uuidv4(),
       direction: 'inbound',
       content: Body,
@@ -90,9 +105,12 @@ app.post('/api/webhooks/twilio/incoming', (req, res) => {
     res.type('text/xml').send(
       '<?xml version="1.0" encoding="UTF-8"?><Response></Response>'
     );
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error processing incoming message:', error);
-    res.status(500).send('Error processing message');
+    res.status(500).json({ 
+      error: 'Error processing message',
+      details: error.message 
+    });
   }
 });
 
